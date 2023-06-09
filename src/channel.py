@@ -1,27 +1,52 @@
 import json
 import os
 from googleapiclient.discovery import build
+from functools import total_ordering
 
 
+@total_ordering
 class Channel:
     """Класс для ютуб-канала"""
     api_key: str = os.getenv('YT_API_KEY')
     youtube = build('youtube', 'v3', developerKey=api_key)
 
-    def __init__(self, channel_id: int, channel_title: str, channel_description: str, channel_url: str,
-                 channel_subscribes: str, video_count: str, views_count: str) -> None:
+    def __init__(self, channel_id: str) -> None:
         """Экземпляр инициализируется id канала. Дальше все данные будут подтягиваться по API."""
-        self.channel_id = channel_id
-        self.channel_title = channel_title
-        self.channel_description = channel_description
-        self.channel_url = channel_url
-        self.channel_subscribes = channel_subscribes
-        self.video_count = video_count
-        self.views_count = views_count
+        self.__channel_id = channel_id
+        self.channel = self.get_service().channels().list(id=self.__channel_id, part='snippet,statistics').execute()
+        self.title = self.channel['items'][0]['snippet']['title']
+        self.description = self.channel['items'][0]['snippet']['description']
+        self.url = "https://www.youtube.com/channel/" + self.__channel_id
+        self.video_count = self.channel['items'][0]['statistics']['videoCount']
+        self.subscribers = self.channel['items'][0]['statistics']['subscriberCount']
+        self.views_count = self.channel['items'][0]['statistics']['viewCount']
+
+    def __str__(self):
+        return f"{self.__class__.__name__}, ({self.url})"
+
+    def __add__(self, other):
+        if isinstance(other, Channel):
+            return int(self.subscribers) + int(other.subscribers)
+        return NotImplementedError
+
+    def __sub__(self, other):
+        if isinstance(other, Channel):
+            return int(self.subscribers) - int(other.subscribers)
+        return NotImplementedError
+
+    def __lt__(self, other):
+        if isinstance(other, Channel):
+            return int(self.subscribers) < int(other.subscribers)
+        return NotImplementedError
+
+    def __eq__(self, other):
+        if isinstance(other, Channel):
+            return int(self.subscribers) == int(other.subscribers)
+        return NotImplementedError
 
     def print_info(self) -> None:
         """Выводит в консоль информацию о канале."""
-        print(json.dumps(self.youtube.channels().list(id=self.channel_id, part='snippet,statistics').execute(),
+        print(json.dumps(self.youtube.channels().list(id=self.__channel_id, part='snippet,statistics').execute(),
                          indent=2, ensure_ascii=False))
 
     @classmethod
@@ -32,12 +57,12 @@ class Channel:
         """Сохраняет в файл значения атрибутов экземпляра `Channel`"""
 
         data_channel = (
-            {"channel_id": self.channel_id,
-             "channel_title": self.channel_title,
-             "description": self.channel_description,
-             "url": self.channel_url,
+            {"channel_id": self.__channel_id,
+             "channel_title": self.title,
+             "description": self.description,
+             "url": self.url,
              "video_count": self.video_count,
-             "subscribers": self.channel_subscribes,
+             "subscribers": self.subscribers,
              "views_count": self.views_count
              }
         )
