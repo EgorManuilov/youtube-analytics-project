@@ -1,8 +1,9 @@
 import os
-from distutils.command.build import build
+from googleapiclient.discovery import build
 
 
 class Video:
+
     api_key: str = os.getenv('YT_API_KEY')
 
     def __init__(self, video_id):
@@ -24,7 +25,7 @@ class Video:
             self.like_count = None
 
     def __repr__(self):
-        return f"{self.__class__.__name__}, ({self.video_id})"
+        return f"{self.__class__.__name__}('{self.video_id}')"
 
     def __str__(self):
         return f"{self.title}"
@@ -37,6 +38,8 @@ class Video:
 
 
 class PLVideo(Video):
+
     def __init__(self, video_id, playlist_id):
-        super.__init__(video_id)
+        super().__init__(video_id)
         self.playlist_id = playlist_id
+
